@@ -19,7 +19,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ServerErrorDto> handleEntityNotFoundException(EntityNotFoundException e) {
-        log.error("Got EntityNotFoundException", e);
+        log.error(e.getMessage());
         var errorDto = new ServerErrorDto(
                 "Сущность не найдена",
                 e.getMessage(),
@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ServerErrorDto> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        log.error("Got MethodArgumentNotValidException", e);
+        log.error(e.getMessage());
         var detailMessage = e.getBindingResult()
                 .getFieldErrors()
                 .stream()

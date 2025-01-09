@@ -13,6 +13,7 @@ public class LocationEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "description")
     private String description;
 
     @Column(name = "address", nullable = false)
