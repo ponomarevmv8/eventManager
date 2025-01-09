@@ -1,0 +1,6 @@
+server.host: "0.0.0.0"
+server.port: 5601
+
+monitoring.ui.container.elasticsearch.enabled: true
+
+elasticsearch.serviceAccountToken: AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS1kZWZhdWx0LXRva2VuOkloall3YmlGVGFxMWZ6NFEtV2YxM3c
