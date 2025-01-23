@@ -1,5 +1,6 @@
 package ponomarev.dev.eventmanager.security.jwt;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,7 +14,8 @@ public class JwtAuthenticationService {
     private final JwtTokenManager jwtTokenManager;
     private final AuthenticationManager authenticationManager;
 
-    public JwtAuthenticationService(JwtTokenManager jwtTokenManager, AuthenticationManager authenticationManager) {
+    public JwtAuthenticationService(JwtTokenManager jwtTokenManager,
+                                    AuthenticationManager authenticationManager) {
         this.jwtTokenManager = jwtTokenManager;
         this.authenticationManager = authenticationManager;
     }
