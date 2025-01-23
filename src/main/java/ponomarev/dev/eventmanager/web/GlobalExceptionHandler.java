@@ -28,6 +28,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(errorDto);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ServerErrorDto> handleIllegalArgumentException(IllegalArgumentException e) {
+        log.error("Get illegal argument", e);
+        var errorDto = new ServerErrorDto(
+                "Сущность уже существует",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.badRequest().body(errorDto);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ServerErrorDto> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         log.error(e.getMessage());
