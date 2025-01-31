@@ -41,6 +41,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(Customizer.withDefaults())
@@ -72,13 +73,25 @@ public class SecurityConfiguration {
                                 .requestMatchers(HttpMethod.PUT, "locations/{id}")
                                 .hasAnyAuthority(UserRole.ADMIN.name())
 
+                                .requestMatchers(HttpMethod.POST, "events")
+                                .hasAnyAuthority(UserRole.USER.name())
+                                .requestMatchers(HttpMethod.GET, "/events/my")
+                                .hasAnyAuthority(UserRole.USER.name())
+
+                                .requestMatchers(HttpMethod.POST, "/events/registrations/{eventId}")
+                                .hasAnyAuthority(UserRole.USER.name())
+                                .requestMatchers(HttpMethod.DELETE, "events/registrations/cancel/{eventId}")
+                                .hasAnyAuthority(UserRole.USER.name())
+                                .requestMatchers(HttpMethod.GET, "/events/registrations/my")
+                                .hasAnyAuthority(UserRole.USER.name())
+
                                 .anyRequest()
                                 .authenticated())
                 .exceptionHandling(exceptions ->
                         exceptions
                                 .authenticationEntryPoint(customAuthenticationEntryPoint)
                                 .accessDeniedHandler(customAccessDeniedHandler))
-                .addFilterBefore(jwtTokenFilter, AnonymousAuthenticationFilter.class)
+                .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 

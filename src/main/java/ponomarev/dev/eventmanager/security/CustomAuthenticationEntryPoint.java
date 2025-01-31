@@ -35,7 +35,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
     ) throws IOException, ServletException {
         log.error("Get authentication exception", authException);
         var message = new ServerErrorDto(
-                "Необходима аутентификация",
+                "Необходима аунтеикация",
                 authException.getMessage(),
                 LocalDateTime.now()
         );
@@ -44,6 +44,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
 
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
         response.getWriter().write(stringMessage);
     }
 }

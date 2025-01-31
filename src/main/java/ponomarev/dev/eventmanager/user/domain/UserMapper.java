@@ -14,4 +14,14 @@ public class UserMapper {
                 UserRole.valueOf(user.getRole())
         );
     }
+
+    public UserEntity toEntity (User user){
+        return new UserEntity(
+                user.id(),
+                user.login(),
+                null,
+                user.age(),
+                user.role().name()
+        );
+    }
 }
