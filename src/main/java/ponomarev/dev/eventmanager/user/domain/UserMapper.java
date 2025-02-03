@@ -19,7 +19,6 @@ public class UserMapper {
         return new UserEntity(
                 user.id(),
                 user.login(),
-                null,
                 user.age(),
                 user.role().name()
         );

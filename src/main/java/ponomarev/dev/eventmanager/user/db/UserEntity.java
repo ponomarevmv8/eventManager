@@ -33,6 +33,13 @@ public class UserEntity {
         this.role = role;
     }
 
+    public UserEntity(Long id, String login, Integer age, String role) {
+        this.id = id;
+        this.login = login;
+        this.age = age;
+        this.role = role;
+    }
+
     public String getLogin() {
         return login;
     }

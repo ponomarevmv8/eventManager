@@ -57,7 +57,7 @@ public class EventService {
                 event.duration(),
                 location.id(),
                 List.of(),
-                EventStatus.WAIT_START.name()
+                EventStatus.WAIT_START
         );
 
         var eventCreated = eventRepository.save(eventToCreat);

@@ -2,6 +2,7 @@ package ponomarev.dev.eventmanager.events.domain;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,11 +18,14 @@ public class EventStatusUpdater {
     private static final Logger log = LoggerFactory.getLogger(EventStatusUpdater.class);
     private final EventRepository eventRepository;
 
+    @Value("${scheduled.update.fixedrate}")
+    private static Long fixedRate;
+
     public EventStatusUpdater(EventRepository eventRepository) {
         this.eventRepository = eventRepository;
     }
 
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRateString = "#{${scheduled.update.fixedrate}}")
     public void updateStatusEvents() {
         log.info("Updating status events");
         var startsEvent = eventRepository.findStartedWithStatus();

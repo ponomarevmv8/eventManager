@@ -1,6 +1,7 @@
 package ponomarev.dev.eventmanager.events.db;
 
 import jakarta.persistence.*;
+import ponomarev.dev.eventmanager.events.domain.EventStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -42,12 +43,12 @@ public class EventEntity {
     private List<EventParticipantEntity> eventParticipantList;
 
     @Column(name = "status", nullable = false)
-    private String status;
+    private EventStatus status;
 
     public EventEntity() {
     }
 
-    public EventEntity(Long id, String name, String description, Long ownerId, Integer maxPlaces, LocalDateTime date, Integer cost, Integer duration, Long locationId, List<EventParticipantEntity> eventParticipantList, String status) {
+    public EventEntity(Long id, String name, String description, Long ownerId, Integer maxPlaces, LocalDateTime date, Integer cost, Integer duration, Long locationId, List<EventParticipantEntity> eventParticipantList, EventStatus status) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -60,6 +61,8 @@ public class EventEntity {
         this.eventParticipantList = eventParticipantList;
         this.status = status;
     }
+
+
 
     public void setOwnerId(Long ownerId) {
         this.ownerId = ownerId;
@@ -77,11 +80,11 @@ public class EventEntity {
         this.eventParticipantList = eventParticipantList;
     }
 
-    public String getStatus() {
+    public EventStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(EventStatus status) {
         this.status = status;
     }
 
