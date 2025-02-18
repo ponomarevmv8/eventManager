@@ -9,6 +9,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -62,6 +63,17 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage());
         var errorDto = new ServerErrorDto(
                 "Json invalid format",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.badRequest().body(errorDto);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ServerErrorDto> handleNoHandlerFoundException(NoResourceFoundException e) {
+        log.error(e.getMessage());
+        var errorDto = new ServerErrorDto(
+                "Not found",
                 e.getMessage(),
                 LocalDateTime.now()
         );

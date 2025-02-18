@@ -39,16 +39,16 @@ public class EventEntity {
     @Column(name = "location_id", nullable = false)
     private Long locationId;
 
-    @OneToMany(mappedBy = "event")
+    @OneToMany(mappedBy = "event", fetch = FetchType.EAGER)
     private List<EventParticipantEntity> eventParticipantList;
 
     @Column(name = "status", nullable = false)
-    private EventStatus status;
+    private String status;
 
     public EventEntity() {
     }
 
-    public EventEntity(Long id, String name, String description, Long ownerId, Integer maxPlaces, LocalDateTime date, Integer cost, Integer duration, Long locationId, List<EventParticipantEntity> eventParticipantList, EventStatus status) {
+    public EventEntity(Long id, String name, String description, Long ownerId, Integer maxPlaces, LocalDateTime date, Integer cost, Integer duration, Long locationId, List<EventParticipantEntity> eventParticipantList, String status) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -80,11 +80,11 @@ public class EventEntity {
         this.eventParticipantList = eventParticipantList;
     }
 
-    public EventStatus getStatus() {
+    public String getStatus() {
         return status;
     }
 
-    public void setStatus(EventStatus status) {
+    public void setStatus(String status) {
         this.status = status;
     }
 

@@ -7,7 +7,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import ponomarev.dev.eventmanager.events.db.EventEntity;
+import ponomarev.dev.eventmanager.events.db.EventParticipantEntity;
 import ponomarev.dev.eventmanager.events.db.EventRepository;
+import ponomarev.dev.eventmanager.kafka.EventKafkaSender;
+import ponomarev.dev.eventmanager.kafka.event.EventChangeKafkaEvent;
+import ponomarev.dev.eventmanager.kafka.event.FieldChange;
 
 
 @Configuration
@@ -17,12 +21,14 @@ public class EventStatusUpdater {
 
     private static final Logger log = LoggerFactory.getLogger(EventStatusUpdater.class);
     private final EventRepository eventRepository;
+    private final EventKafkaSender eventKafkaSender;
 
     @Value("${scheduled.update.fixedrate}")
     private static Long fixedRate;
 
-    public EventStatusUpdater(EventRepository eventRepository) {
+    public EventStatusUpdater(EventRepository eventRepository, EventKafkaSender eventKafkaSender) {
         this.eventRepository = eventRepository;
+        this.eventKafkaSender = eventKafkaSender;
     }
 
     @Scheduled(fixedRateString = "#{${scheduled.update.fixedrate}}")
@@ -31,6 +37,27 @@ public class EventStatusUpdater {
         var startsEvent = eventRepository.findStartedWithStatus();
 
         if(!startsEvent.isEmpty()) {
+            startsEvent.forEach(
+                    event -> {
+                        var kafkaMessage = new EventChangeKafkaEvent(
+                                event.getId(),
+                                null,
+                                event.getOwnerId(),
+                                event.getEventParticipantList()
+                                        .stream()
+                                        .map(EventParticipantEntity::getUserId)
+                                        .toList()
+                        );
+                        kafkaMessage.setStatus(
+                                new FieldChange<>(
+                                        EventStatus.valueOf(event.getStatus()),
+                                        EventStatus.STARTED
+                                )
+                        );
+                        eventKafkaSender.send(kafkaMessage);
+                        log.info("Sent message to kafka {}", kafkaMessage);
+                    }
+            );
             eventRepository.updateStatusAll(EventStatus.STARTED.name(),
                     startsEvent.stream().map(EventEntity::getId).toList());
         }
@@ -40,6 +67,27 @@ public class EventStatusUpdater {
             eventRepository.updateStatusAll(
                     EventStatus.FINISHED.name(),
                     endsEvent.stream().map(EventEntity::getId).toList()
+            );
+            endsEvent.forEach(
+                    event -> {
+                        var kafkaMessage = new EventChangeKafkaEvent(
+                                event.getId(),
+                                null,
+                                event.getOwnerId(),
+                                event.getEventParticipantList()
+                                        .stream()
+                                        .map(EventParticipantEntity::getUserId)
+                                        .toList()
+                        );
+                        kafkaMessage.setStatus(
+                                new FieldChange<>(
+                                        EventStatus.valueOf(event.getStatus()),
+                                        EventStatus.FINISHED
+                                )
+                        );
+                        eventKafkaSender.send(kafkaMessage);
+                        log.info("Sent message to kafka {}", kafkaMessage);
+                    }
             );
         }
     }

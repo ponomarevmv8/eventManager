@@ -7,17 +7,20 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import ponomarev.dev.eventmanager.user.api.UserCredentials;
 import ponomarev.dev.eventmanager.user.domain.User;
+import ponomarev.dev.eventmanager.user.domain.UserService;
 
 @Service
 public class JwtAuthenticationService {
 
     private final JwtTokenManager jwtTokenManager;
     private final AuthenticationManager authenticationManager;
+    private final UserService userService;
 
     public JwtAuthenticationService(JwtTokenManager jwtTokenManager,
-                                    AuthenticationManager authenticationManager) {
+                                    AuthenticationManager authenticationManager, UserService userService) {
         this.jwtTokenManager = jwtTokenManager;
         this.authenticationManager = authenticationManager;
+        this.userService = userService;
     }
 
     public String authenticate(UserCredentials userCredentials) {
@@ -25,8 +28,8 @@ public class JwtAuthenticationService {
                 userCredentials.login(),
                 userCredentials.password()
         ));
-
-        return jwtTokenManager.generateToken(userCredentials.login());
+        var user = userService.findByLogin(userCredentials.login());
+        return jwtTokenManager.generateToken(user);
     }
 
     public User getCurrentAuthenticatedUserOrThrow() {
