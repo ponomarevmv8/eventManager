@@ -2,6 +2,7 @@ package ponomarev.dev.eventmanager.location;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +30,7 @@ public class LocationService {
                 .toList();
     }
 
+    @Transactional
     public Location create(Location location) {
         var locationToCreate = converter.toEntity(location);
         locationToCreate.setId(null);
@@ -36,6 +38,7 @@ public class LocationService {
         return converter.toDomain(locationCreate);
     }
 
+    @Transactional
     public Location update(Long id, Location location) {
         if(!locationRepository.existsById(id)) {
             throw new EntityNotFoundException("Not found location with id: %s".formatted(id));
@@ -45,6 +48,7 @@ public class LocationService {
         return converter.toDomain(locationRepository.save(locationUpdated));
     }
 
+    @Transactional
     public void delete(Long id) {
         if(!locationRepository.existsById(id)) {
             throw new EntityNotFoundException("Not found location with id: %s".formatted(id));

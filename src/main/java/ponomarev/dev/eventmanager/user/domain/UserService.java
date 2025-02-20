@@ -3,6 +3,7 @@ package ponomarev.dev.eventmanager.user.domain;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ponomarev.dev.eventmanager.user.api.UserRegistration;
 import ponomarev.dev.eventmanager.user.db.UserEntity;
 import ponomarev.dev.eventmanager.user.db.UserRepository;
@@ -20,6 +21,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     public User createUser(UserRegistration userRegistration) {
         if (userRepository.existsByLogin(userRegistration.login()))
             throw new IllegalArgumentException("Login already exists");

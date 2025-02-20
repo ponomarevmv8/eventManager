@@ -15,7 +15,6 @@ import java.util.List;
 public interface EventRepository extends JpaRepository<EventEntity, Long> {
 
     @Modifying
-    @Transactional
     @Query("""
             update EventEntity e set e.status = :status where e.id = :id
             """)
@@ -78,7 +77,6 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
     @Query("""
             update EventEntity e set e.status = :status where e.id in :ids
             """)
-    @Transactional
     void updateStatusAll(
             @Param("status") String status,
             @Param("ids") List<Long> ids);

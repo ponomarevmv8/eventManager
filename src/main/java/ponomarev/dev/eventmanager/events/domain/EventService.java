@@ -3,23 +3,19 @@ package ponomarev.dev.eventmanager.events.domain;
 import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ponomarev.dev.eventmanager.events.api.EventCreateRequestDto;
 import ponomarev.dev.eventmanager.events.api.EventSearchRequestDto;
 import ponomarev.dev.eventmanager.events.api.EventUpdateRequestDto;
 import ponomarev.dev.eventmanager.events.db.EventEntity;
 import ponomarev.dev.eventmanager.events.db.EventEntityMapper;
-import ponomarev.dev.eventmanager.events.db.EventParticipantEntity;
 import ponomarev.dev.eventmanager.events.db.EventRepository;
-import ponomarev.dev.eventmanager.kafka.EventKafkaSender;
-import ponomarev.dev.eventmanager.kafka.event.EventChangeKafkaEvent;
-import ponomarev.dev.eventmanager.kafka.event.FieldChange;
+import ponomarev.dev.eventmanager.kafka.NotificationService;
 import ponomarev.dev.eventmanager.location.LocationService;
 import ponomarev.dev.eventmanager.security.jwt.JwtAuthenticationService;
 import ponomarev.dev.eventmanager.user.domain.User;
 import ponomarev.dev.eventmanager.user.domain.UserRole;
-import ponomarev.dev.eventmanager.user.domain.UserService;
 
 import java.util.List;
 import java.util.Optional;
@@ -34,16 +30,18 @@ public class EventService {
     private final EventEntityMapper eventEntityMapper;
     private final JwtAuthenticationService jwtAuthenticationService;
     private final LocationService locationService;
-    private final EventKafkaSender eventKafkaSender;
+    private final NotificationService notificationService;
 
-    public EventService(EventRepository eventRepository, EventEntityMapper eventEntityMapper, JwtAuthenticationService jwtAuthenticationService, LocationService locationService, EventKafkaSender eventKafkaSender) {
+    public EventService(EventRepository eventRepository, EventEntityMapper eventEntityMapper, JwtAuthenticationService jwtAuthenticationService, LocationService locationService, NotificationService notificationService) {
         this.eventRepository = eventRepository;
         this.eventEntityMapper = eventEntityMapper;
         this.jwtAuthenticationService = jwtAuthenticationService;
         this.locationService = locationService;
-        this.eventKafkaSender = eventKafkaSender;
+        this.notificationService = notificationService;
     }
 
+
+    @Transactional
     public Event createEvent(EventCreateRequestDto event) {
 
         var owner = jwtAuthenticationService.getCurrentAuthenticatedUserOrThrow();
@@ -74,6 +72,7 @@ public class EventService {
         return eventEntityMapper.toDomain(eventCreated);
     }
 
+    @Transactional
     public void cancelEvent(Long eventId) {
         var canceledEvent = findById(eventId);
         var user = jwtAuthenticationService.getCurrentAuthenticatedUserOrThrow();
@@ -91,6 +90,12 @@ public class EventService {
         }
         eventRepository.updateStatus(eventId, EventStatus.CANCELLED.name());
         log.info("Event id: {} was cancelled", eventId);
+
+        notificationService.sendUpdateStatusEvent(
+                canceledEvent,
+                EventStatus.CANCELLED,
+                user
+        );
     }
 
     public Event findById(Long eventId) {
@@ -106,6 +111,7 @@ public class EventService {
         }
     }
 
+    @Transactional
     public Event updateEvent(Long eventId,
                              EventUpdateRequestDto eventDto) {
 
@@ -140,68 +146,35 @@ public class EventService {
             }
         }
 
-        var kafkaMessage = new EventChangeKafkaEvent(
-                eventId,
-                user.id(),
-                updatedEvent.getOwnerId(),
-                updatedEvent.getEventParticipantList()
-                        .stream().map(EventParticipantEntity::getUserId)
-                        .toList()
-        );
+        var oldEvent = eventEntityMapper.toDomain(eventRepository.save(updatedEvent));
+
 
         Optional.ofNullable(eventDto.name())
-                .ifPresent(value -> {
-                    kafkaMessage.setName(
-                            new FieldChange<>(updatedEvent.getName(), value)
-                    );
-                    updatedEvent.setName(value);
-                });
+                .ifPresent(updatedEvent::setName);
         Optional.ofNullable(eventDto.description())
                 .ifPresent(updatedEvent::setDescription);
         Optional.ofNullable(eventDto.maxPlaces())
-                .ifPresent(maxPlaces -> {
-                    kafkaMessage.setMaxPlace(
-                            new FieldChange<>(updatedEvent.getMaxPlaces(), maxPlaces)
-                    );
-                    updatedEvent.setMaxPlaces(maxPlaces);
-                });
+                .ifPresent(updatedEvent::setMaxPlaces);
         Optional.ofNullable(eventDto.date())
-                .ifPresent(dateTime -> {
-                    kafkaMessage.setDate(
-                            new FieldChange<>(updatedEvent.getDate(), dateTime)
-                    );
-                    updatedEvent.setDate(dateTime);
-                });
+                .ifPresent(updatedEvent::setDate);
         Optional.ofNullable(eventDto.cost())
-                .ifPresent(cost -> {
-                    kafkaMessage.setCost(
-                            new FieldChange<>(updatedEvent.getCost(), cost)
-                    );
-                    updatedEvent.setCost(cost);
-                });
+                .ifPresent(updatedEvent::setCost);
         Optional.ofNullable(eventDto.duration())
-                .ifPresent(duration -> {
-                    kafkaMessage.setDuration(
-                            new FieldChange<>(updatedEvent.getDuration(), duration)
-                    );
-                    updatedEvent.setDuration(duration);
-                });
+                .ifPresent(updatedEvent::setDuration);
         Optional.ofNullable(eventDto.locationId())
-                .ifPresent(locationId -> {
-                    kafkaMessage.setLocationId(
-                            new FieldChange<>(updatedEvent.getLocationId(), locationId)
-                    );
-                    updatedEvent.setLocationId(locationId);
-                });
+                .ifPresent(updatedEvent::setLocationId);
 
-        eventKafkaSender.send(
-                kafkaMessage
-        );
-
-        log.info("Kafka event sent: {}", kafkaMessage);
+        var updateEvent = eventEntityMapper.toDomain(eventRepository.save(updatedEvent));
 
         log.info("Update event with id: {}", eventId);
-        return eventEntityMapper.toDomain(eventRepository.save(updatedEvent));
+
+        notificationService.sendUpdateFieldEvent(
+                updateEvent,
+                oldEvent,
+                user
+        );
+
+        return updateEvent;
     }
 
     public List<Event> searchEvent(EventSearchRequestDto eventSearchRequestDto) {

@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ponomarev.dev.eventmanager.events.db.EventEntityMapper;
 import ponomarev.dev.eventmanager.events.db.EventParticipantEntity;
 import ponomarev.dev.eventmanager.events.db.EventParticipantRepository;
@@ -30,6 +31,7 @@ public class EventParticipantService {
         this.eventEntityMapper = eventEntityMapper;
     }
 
+    @Transactional
     public void registrationForEvent(Long eventId) {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id %s not found".formatted(eventId)));
@@ -56,6 +58,7 @@ public class EventParticipantService {
         log.info("The user id: {} was registered for the event id: {}", user.id(), eventId);
     }
 
+    @Transactional
     public void cancelParticipation(Long eventId) {
 
         var user = jwtAuthenticationService.getCurrentAuthenticatedUserOrThrow();
