@@ -4,6 +4,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import ponomarev.dev.eventmanager.user.domain.User;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
@@ -21,9 +22,11 @@ public class JwtTokenManager {
         this.lifeTime = lifeTime;
     }
 
-    public String generateToken(String username) {
+    public String generateToken(User user) {
         return Jwts.builder()
-                .subject(username)
+                .subject(user.login())
+                .claim("userId", user.id())
+                .claim("role", user.role().name())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + lifeTime))
                 .signWith(secretKey)

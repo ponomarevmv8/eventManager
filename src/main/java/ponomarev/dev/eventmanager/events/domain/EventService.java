@@ -4,12 +4,14 @@ import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ponomarev.dev.eventmanager.events.api.EventCreateRequestDto;
 import ponomarev.dev.eventmanager.events.api.EventSearchRequestDto;
 import ponomarev.dev.eventmanager.events.api.EventUpdateRequestDto;
 import ponomarev.dev.eventmanager.events.db.EventEntity;
 import ponomarev.dev.eventmanager.events.db.EventEntityMapper;
 import ponomarev.dev.eventmanager.events.db.EventRepository;
+import ponomarev.dev.eventmanager.kafka.NotificationService;
 import ponomarev.dev.eventmanager.location.LocationService;
 import ponomarev.dev.eventmanager.security.jwt.JwtAuthenticationService;
 import ponomarev.dev.eventmanager.user.domain.User;
@@ -28,14 +30,18 @@ public class EventService {
     private final EventEntityMapper eventEntityMapper;
     private final JwtAuthenticationService jwtAuthenticationService;
     private final LocationService locationService;
+    private final NotificationService notificationService;
 
-    public EventService(EventRepository eventRepository, EventEntityMapper eventEntityMapper, JwtAuthenticationService jwtAuthenticationService, LocationService locationService) {
+    public EventService(EventRepository eventRepository, EventEntityMapper eventEntityMapper, JwtAuthenticationService jwtAuthenticationService, LocationService locationService, NotificationService notificationService) {
         this.eventRepository = eventRepository;
         this.eventEntityMapper = eventEntityMapper;
         this.jwtAuthenticationService = jwtAuthenticationService;
         this.locationService = locationService;
+        this.notificationService = notificationService;
     }
 
+
+    @Transactional
     public Event createEvent(EventCreateRequestDto event) {
 
         var owner = jwtAuthenticationService.getCurrentAuthenticatedUserOrThrow();
@@ -57,7 +63,7 @@ public class EventService {
                 event.duration(),
                 location.id(),
                 List.of(),
-                EventStatus.WAIT_START
+                EventStatus.WAIT_START.name()
         );
 
         var eventCreated = eventRepository.save(eventToCreat);
@@ -66,6 +72,7 @@ public class EventService {
         return eventEntityMapper.toDomain(eventCreated);
     }
 
+    @Transactional
     public void cancelEvent(Long eventId) {
         var canceledEvent = findById(eventId);
         var user = jwtAuthenticationService.getCurrentAuthenticatedUserOrThrow();
@@ -83,6 +90,12 @@ public class EventService {
         }
         eventRepository.updateStatus(eventId, EventStatus.CANCELLED.name());
         log.info("Event id: {} was cancelled", eventId);
+
+        notificationService.sendUpdateStatusEvent(
+                canceledEvent,
+                EventStatus.CANCELLED,
+                user
+        );
     }
 
     public Event findById(Long eventId) {
@@ -98,6 +111,7 @@ public class EventService {
         }
     }
 
+    @Transactional
     public Event updateEvent(Long eventId,
                              EventUpdateRequestDto eventDto) {
 
@@ -132,6 +146,9 @@ public class EventService {
             }
         }
 
+        var oldEvent = eventEntityMapper.toDomain(eventRepository.save(updatedEvent));
+
+
         Optional.ofNullable(eventDto.name())
                 .ifPresent(updatedEvent::setName);
         Optional.ofNullable(eventDto.description())
@@ -147,8 +164,17 @@ public class EventService {
         Optional.ofNullable(eventDto.locationId())
                 .ifPresent(updatedEvent::setLocationId);
 
+        var updateEvent = eventEntityMapper.toDomain(eventRepository.save(updatedEvent));
+
         log.info("Update event with id: {}", eventId);
-        return eventEntityMapper.toDomain(eventRepository.save(updatedEvent));
+
+        notificationService.sendUpdateFieldEvent(
+                updateEvent,
+                oldEvent,
+                user
+        );
+
+        return updateEvent;
     }
 
     public List<Event> searchEvent(EventSearchRequestDto eventSearchRequestDto) {

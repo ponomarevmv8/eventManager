@@ -27,7 +27,7 @@ public class EventEntityMapper {
                                 eventParticipantEntity.getUserId(),
                                 eventParticipantEntity.getEvent().getId()
                         )).toList(),
-                event.getStatus()
+                EventStatus.valueOf(event.getStatus())
                 );
     }
 
